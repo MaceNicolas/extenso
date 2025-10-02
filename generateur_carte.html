@@ -8,57 +8,64 @@
     <style>
         body {
             font-family: "dmSansFont", "dmSansFont Fallback", sans-serif;
-            background-color: #ffe6f0;
+            background-color: #f8f9fa; /* Fond clair */
             padding: 20px;
+            color: #333;
         }
 
-        h1 {
-            color: #8704af;
-            margin-bottom: 40px;
-        }
-        h2 {
-            color: #8704af;
+        h1, h2 {
+            color: #8704af; /* Violet principal */
             margin-bottom: 20px;
         }
 
-        label {
-            font-weight: bold;
+        /* Suppression des coins arrondis */
+        .form-section {
+            background-color: white; 
+            padding: 20px;
+            /* Suppression: border-radius: 8px; */
+            border: 1px solid #ced4da; /* Bordure nette */
+            box-shadow: 2px 2px 0px 0px #ced4da; /* Ombre nette pour un effet 3D léger */
         }
 
+        label {
+            font-weight: 600;
+            color: #8704af;
+        }
+
+        /* Suppression des coins arrondis */
         #map {
             width: 400px;
             height: 400px;
-            border: 2px solid #8704af;
-            border-radius: 8px;
+            border: 2px solid #8704af; 
+            /* Suppression: border-radius: 8px; */
         }
 
+        /* Bouton Principal: Violet */
         .btn-main {
             background-color: #8704af;
             color: white;
-            border: none;
+            border: 1px solid #6a0390; /* Bordure explicite */
+            /* Suppression: border-radius */
+            transition: background-color 0.3s ease;
         }
 
         .btn-main:hover {
-            background-color: #6a0390;
+            background-color: #6a0390; /* Violet foncé au survol */
             color: white;
         }
 
+        /* Bouton Secondaire: Rose */
         .btn-secondary-custom {
-            background-color: #ff99cc;
-            color: white;
-            border: none;
+            background-color: #ff99cc; 
+            color: #333;
+            border: 1px solid #ff66aa; /* Bordure explicite */
+            /* Suppression: border-radius */
+            transition: background-color 0.3s ease;
         }
 
         .btn-secondary-custom:hover {
-            background-color: #ff66aa;
+            background-color: #ff66aa; /* Rose plus foncé au survol */
             color: white;
-        }
-
-        .form-section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 2px solid #8704af;
         }
 
         .row.centered {
@@ -66,14 +73,17 @@
             gap: 20px;
         }
 
+        /* Section Astuce: Bordure nette */
         .astuce-section {
             background-color: white;
-            border: 2px solid #8704af;
-            border-radius: 8px;
+            border: 1px solid #ced4da; 
+            border-left: 5px solid #ff99cc; /* Barre rose en accentuation */
+            /* Suppression: border-radius: 8px; */
             padding: 20px;
             margin-top: 30px;
             text-align: left;
             color: #333;
+            box-shadow: 1px 1px 0px 0px rgba(0, 0, 0, 0.1); /* Ombre très subtile */
         }
 
         .astuce-section a {
@@ -168,7 +178,7 @@
         document.getElementById('lat').value = coords.lat;
         document.getElementById('lon').value = coords.lon;
 
-        // Générer automatiquement la carte suite à la recherche de ville
+        // Générer automatiquement la carte
         isCitySearch = true; // Marquer l'origine comme une recherche par ville
         generateMap(coords.lat, coords.lon);
     });
@@ -230,7 +240,6 @@
             return;
         }
 
-        // --- DÉBUT MODIFICATION ---
         let filename = 'carte';
         const ville = document.getElementById('ville').value.trim();
         
@@ -242,7 +251,6 @@
             // Si c'est une génération manuelle par coordonnées ou si la ville n'a pas été trouvée, utiliser 'carte'
             filename = 'carte';
         }
-        // --- FIN MODIFICATION ---
 
         leafletImage(map, function(err, canvas) {
             if (err) {
