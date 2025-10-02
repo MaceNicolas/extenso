@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Générateur de Carte</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: "dmSansFont", "dmSansFont Fallback", sans-serif;
+            background-color: #ffe6f0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #8704af;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: #8704af;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        #map {
+            width: 400px;
+            height: 400px;
+            border: 2px solid #8704af;
+            border-radius: 8px;
+        }
+
+        .btn-main {
+            background-color: #8704af;
+            color: white;
+            border: none;
+        }
+
+        .btn-main:hover {
+            background-color: #6a0390;
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background-color: #ff99cc;
+            color: white;
+            border: none;
+        }
+
+        .btn-secondary-custom:hover {
+            background-color: #ff66aa;
+            color: white;
+        }
+
+        .form-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #8704af;
+        }
+
+        .row.centered {
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .astuce-section {
+            background-color: white;
+            border: 2px solid #8704af;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            color: #333;
+        }
+
+        .astuce-section a {
+            color: #8704af;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container text-center">
+    <h1>Générateur de Carte</h1>
+
+    <div class="row centered">
+        <div class="col-md-4 form-section">
+            <div class="mb-3">
+                <label for="ville" class="form-label">Nom de la ville :</label>
+                <input type="text" class="form-control" id="ville" placeholder="Ex: Villeurbanne">
+            </div>
+            <div class="mb-3">
+                <label for="lat" class="form-label">Latitude :</label>
+                <input type="text" class="form-control" id="lat" placeholder="">
+            </div>
+            <div class="mb-3">
+                <label for="lon" class="form-label">Longitude :</label>
+                <input type="text" class="form-control" id="lon" placeholder="">
+            </div>
+            <div class="mb-3">
+                <label for="zoom" class="form-label">Zoom :</label>
+                <input type="number" class="form-control" id="zoom" value="5" min="1" max="18">
+            </div>
+            <div class="d-grid gap-2">
+                <button id="generate" class="btn btn-main">Générer la carte</button>
+                <button id="save" class="btn btn-secondary-custom">Enregistrer la carte</button>
+            </div>
+        </div>
+
+        <div class="col-md-4 d-flex justify-content-center">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <div class="row centered">
+        <div class="col-md-8 astuce-section">
+            <h2>Astuces techniques</h2>
+            <ul>
+                <li>Il faut d'abord obtenir le <strong>CODE</strong> de la ville : 
+                    <a href="https://geo.api.gouv.fr/communes?nom=VILLE" target="_blank">https://geo.api.gouv.fr/communes?nom=VILLE</a>
+                </li>
+                <li>Pour obtenir la <strong>longitude et latitude</strong> : 
+                    <a href="https://geo.api.gouv.fr/communes?code=CODE&format=geojson&geometry=centre" target="_blank">https://geo.api.gouv.fr/communes?code=CODE&format=geojson&geometry=centre</a>
+                </li>
+                <li>Pour avoir le <strong>geojson complet</strong> : 
+                    <a href="https://geo.api.gouv.fr/communes?code=CODE&format=geojson&geometry=contour" target="_blank">https://geo.api.gouv.fr/communes?code=CODE&format=geojson&geometry=contour</a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mapbox/leaflet-image@0.4.0/leaflet-image.js"></script>
+
+<script>
+    let map;
+    let marker;
+    let isCitySearch = false; // Nouvelle variable pour suivre l'origine de la génération
+
+    async function fetchVilleCoordinates(ville) {
+        const response = await fetch(`https://geo.api.gouv.fr/communes?nom=${ville}`);
+        const data = await response.json();
+        if (data.length === 0) {
+            alert("Ville non trouvée !");
+            return null;
+        }
+        const code = data[0].code;
+        const centreResponse = await fetch(`https://geo.api.gouv.fr/communes?code=${code}&format=geojson&geometry=centre`);
+        const centreData = await centreResponse.json();
+        const lat = centreData.features[0].geometry.coordinates[1];
+        const lon = centreData.features[0].geometry.coordinates[0];
+        return { lat, lon };
+    }
+
+    document.getElementById('ville').addEventListener('change', async function() {
+        const ville = this.value.trim();
+        if (!ville) return;
+
+        const coords = await fetchVilleCoordinates(ville);
+        if (!coords) return;
+
+        document.getElementById('lat').value = coords.lat;
+        document.getElementById('lon').value = coords.lon;
+
+        // Générer automatiquement la carte suite à la recherche de ville
+        isCitySearch = true; // Marquer l'origine comme une recherche par ville
+        generateMap(coords.lat, coords.lon);
+    });
+
+    document.getElementById('generate').addEventListener('click', function() {
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lon = parseFloat(document.getElementById('lon').value);
+        
+        // Si le champ ville est vide, ou si on génère manuellement les coordonnées, utiliser 'carte'
+        const villeInput = document.getElementById('ville').value.trim();
+        isCitySearch = !!villeInput; // Si le champ ville est non vide, c'est une recherche par ville
+
+        generateMap(lat, lon);
+    });
+
+    function generateMap(lat, lon) {
+        const zoom = parseInt(document.getElementById('zoom').value) || 5;
+        if (!lat || !lon) {
+            alert("Latitude ou longitude manquante !");
+            return;
+        }
+
+        if (!map) {
+            map = L.map('map', {
+                center: [lat, lon],
+                zoom: zoom,
+                dragging: false,
+                touchZoom: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                boxZoom: false,
+                keyboard: false,
+                zoomControl: false
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        } else {
+            map.setView([lat, lon], zoom);
+            if (marker) map.removeLayer(marker);
+        }
+
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        marker = L.marker([lat, lon], { icon: redIcon }).addTo(map);
+    }
+
+    document.getElementById('save').addEventListener('click', function() {
+        if (!map) {
+            alert("Générez d'abord la carte !");
+            return;
+        }
+
+        // --- DÉBUT MODIFICATION ---
+        let filename = 'carte';
+        const ville = document.getElementById('ville').value.trim();
+        
+        // 1. Déterminer le nom de fichier
+        if (isCitySearch && ville) {
+            // Remplacer les espaces par des underscores et mettre en minuscules pour le nom de fichier
+            filename = ville.toLowerCase().replace(/\s+/g, '_');
+        } else {
+            // Si c'est une génération manuelle par coordonnées ou si la ville n'a pas été trouvée, utiliser 'carte'
+            filename = 'carte';
+        }
+        // --- FIN MODIFICATION ---
+
+        leafletImage(map, function(err, canvas) {
+            if (err) {
+                alert("Erreur lors de la génération de l'image : " + err);
+                return;
+            }
+
+            const canvas400 = document.createElement('canvas');
+            canvas400.width = 400;
+            canvas400.height = 400;
+            const ctx = canvas400.getContext('2d');
+            ctx.drawImage(canvas, 0, 0, 400, 400);
+
+            const link = document.createElement('a');
+            // Utilisation du nom de fichier déterminé
+            link.download = filename + '.png'; 
+            link.href = canvas400.toDataURL();
+            link.click();
+        });
+    });
+</script>
+</body>
+</html>
